@@ -1,6 +1,7 @@
 return {
   {
     "mrjones2014/smart-splits.nvim",
+    dependencies = { { "drop-stones/smart-splits-wsl.nvim", opts = {} } },
     -- stylua: ignore
     keys = {
       { "<c-h>", function() require("smart-splits").move_cursor_left()  end, mode = { "n", "t" }, desc = "Go to Left Window" },
