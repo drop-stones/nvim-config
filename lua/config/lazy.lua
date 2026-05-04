@@ -16,6 +16,7 @@ require("lazy").setup({
     { import = "plugins.navigation" },
     { import = "plugins.lang" },
     { import = "plugins.util" },
+    { import = "plugins.picker" },
     { import = "plugins.ui" },
   },
   defaults = {
