@@ -14,7 +14,24 @@ return {
     ft = "markdown",
     keys = {
       -- Note
-      { "<leader>on", "<Cmd>Obsidian new<Cr>", desc = "New note" },
+      {
+        "<leader>on",
+        function()
+          -- Quick fleeting capture: always routed to the "inbox" folder
+          -- via the `fleeting` template customization.
+          local title = require("obsidian.api").input("Title (optional): ")
+          if title == nil then
+            return
+          end
+          local note = require("obsidian.note").create({
+            id = title ~= "" and title or nil,
+            template = "fleeting",
+            should_write = true,
+          })
+          note:open({ sync = true })
+        end,
+        desc = "New fleeting note (inbox)",
+      },
       { "<leader>oN", "<Cmd>Obsidian new_from_template<Cr>", desc = "New from template" },
       -- Daily Notes
       { "<leader>od", "<Cmd>Obsidian dailies<Cr>", desc = "Dailies picker" },
@@ -44,68 +61,94 @@ return {
       { "<leader>oL", "<Cmd>Obsidian link_new<Cr>", desc = "Link to new note", mode = { "v" } },
     },
 
-    -- Create default template
+    -- Scaffold the vault: create the folder structure and copy templates.
     build = function()
-      if vim.fn.has("wsl") == 1 then
-        local link_path = vim.fn.expand("~/vault")
-        if vim.uv.fs_stat(link_path) == 1 then
-          return
-        end
+      local vault = vim.fn.expand("~/Documents/notes")
 
-        -- symlink from "~/vault" to "$env:USERPROFILE/vault"
-        local win_home_path = vim.fn.trim(vim.fn.system({ "powershell.exe", "-NoProfile", "-Command", "$env:USERPROFILE" }))
-        local target_path = vim.fn.trim(vim.fn.system({ "wslpath", "-u", win_home_path })) .. "/vault"
-        vim.uv.fs_symlink(target_path, link_path)
-      else
-        local template_path = vim.fn.expand("~/vault/templates/default.md")
-        if vim.fn.filereadable(template_path) == 1 then
-          return
-        end
+      -- On WSL2, keep the vault on the Windows side (under the real Windows
+      -- "Documents" folder, so OneDrive can sync it) and expose it in Linux as
+      -- a symlink at ~/Documents/notes.
+      if vim.fn.has("wsl") == 1 and vim.uv.fs_lstat(vault) == nil then
+        -- Resolve the actual Documents path (honors OneDrive redirection).
+        local win_docs = vim.fn.trim(
+          vim.fn.system({ "powershell.exe", "-NoProfile", "-Command", "[Environment]::GetFolderPath('MyDocuments')" })
+        )
+        local target = vim.fn.trim(vim.fn.system({ "wslpath", "-u", win_docs })) .. "/notes"
+        vim.fn.mkdir(target, "p")
+        vim.fn.mkdir(vim.fs.dirname(vault), "p") -- ensure ~/Documents exists
+        vim.uv.fs_symlink(target, vault)
+      end
 
-        -- create default template
-        vim.fn.mkdir(vim.fs.dirname(template_path), "p")
-        vim.fn.writefile({
-          "---",
-          "id: {{id}}",
-          "aliases:",
-          " - {{title}}",
-          "tags: []",
-          "---",
-          "",
-          "# {{title}}",
-        }, template_path)
+      -- Create the folder structure so the vault is browsable right away.
+      for _, sub in ipairs({ "inbox", "notes", "daily", "assets", "templates" }) do
+        vim.fn.mkdir(vault .. "/" .. sub, "p")
+      end
+
+      -- Copy the templates shipped with this config into the vault, only the
+      -- ones that are missing so local edits in the vault are preserved.
+      -- Resolve via the runtimepath so it works regardless of where the config
+      -- physically lives (e.g. Nix/home-manager symlinks into the store).
+      local dst_dir = vault .. "/templates"
+      local srcs = vim.api.nvim_get_runtime_file("lua/plugins/util/obsidian/templates/*.md", true)
+      for _, src in ipairs(srcs) do
+        local dst = dst_dir .. "/" .. vim.fs.basename(src)
+        if vim.fn.filereadable(dst) == 0 then
+          vim.fn.writefile(vim.fn.readfile(src), dst)
+        end
       end
     end,
 
     ---@module 'obsidian'
     ---@type obsidian.config
     opts = {
-      -- legacy options
       legacy_commands = false,
+
+      -- Default capture/fallback location for newly generated notes.
       notes_subdir = "inbox",
-      new_note_location = "notes_subdir",
+
+      -- `link_new` and bare creations land next to the current note; the
+      -- template customizations below override this per note type.
+      new_notes_location = "current_dir",
+
+      -- Use the title to build the filename (slug) instead of a timestamp id.
+      note_id_func = function(title, path)
+        return require("obsidian.builtin").title_id(title, path)
+      end,
 
       ---@type obsidian.config.TemplateOpts
       templates = {
         folder = "templates",
+
+        -- Selecting a template routes the new note to the matching folder.
+        customizations = {
+          fleeting = { notes_subdir = "inbox" },
+          permanent = { notes_subdir = "notes" },
+          literature = { notes_subdir = "notes" },
+          moc = { notes_subdir = "notes" },
+        },
       },
 
       ---@type obsidian.config.NoteOpts
       note = {
-        -- template = vim.fn.expand("~/vault/templates/default.md"),
-        template = vim.fn.expand("default.md"),
+        -- Bare `Obsidian new` and `extract_note` create permanent notes.
+        template = "permanent",
       },
 
       ---@type obsidian.config.DailyNotesOpts
       daily_notes = {
         folder = "daily",
-        template = vim.fn.expand("default.md"),
+        template = "daily.md",
+      },
+
+      ---@type obsidian.config.AttachmentsOpts
+      attachments = {
+        folder = "assets",
       },
 
       workspaces = {
         {
-          name = "vault",
-          path = "~/vault",
+          name = "notes",
+          path = "~/Documents/notes",
           strict = true, -- use the `path` as the workspace/vault root
         },
       },
