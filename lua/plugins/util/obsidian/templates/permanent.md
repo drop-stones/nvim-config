@@ -1,0 +1,10 @@
+---
+tags:
+  - permanent
+---
+
+# {{title}}
+
+
+## Links
+
