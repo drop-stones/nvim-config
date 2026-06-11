@@ -1,9 +1,1 @@
----
-tags:
-  - daily
----
-
 # {{date}}
-
-## Log
-

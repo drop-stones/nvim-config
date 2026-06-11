@@ -138,6 +138,10 @@ return {
       daily_notes = {
         folder = "daily",
         template = "daily.md",
+        -- Tag daily notes via the built-in mechanism (matches the single-word
+        -- type tags used elsewhere) instead of seeding it in the template,
+        -- replacing the default `daily-notes` tag.
+        default_tags = { "daily" },
       },
 
       ---@type obsidian.config.AttachmentsOpts
