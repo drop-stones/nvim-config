@@ -26,8 +26,10 @@ return {
           local note = require("obsidian.note").create({
             id = title ~= "" and title or nil,
             template = "fleeting",
-            should_write = true,
           })
+          -- `create` only builds the note in memory; `write` applies the
+          -- template and persists it before we open the buffer.
+          note:write()
           note:open({ sync = true })
         end,
         desc = "New fleeting note (inbox)",
@@ -70,9 +72,7 @@ return {
       -- a symlink at ~/Documents/notes.
       if vim.fn.has("wsl") == 1 and vim.uv.fs_lstat(vault) == nil then
         -- Resolve the actual Documents path (honors OneDrive redirection).
-        local win_docs = vim.fn.trim(
-          vim.fn.system({ "powershell.exe", "-NoProfile", "-Command", "[Environment]::GetFolderPath('MyDocuments')" })
-        )
+        local win_docs = vim.fn.trim(vim.fn.system({ "powershell.exe", "-NoProfile", "-Command", "[Environment]::GetFolderPath('MyDocuments')" }))
         local target = vim.fn.trim(vim.fn.system({ "wslpath", "-u", win_docs })) .. "/notes"
         vim.fn.mkdir(target, "p")
         vim.fn.mkdir(vim.fs.dirname(vault), "p") -- ensure ~/Documents exists
