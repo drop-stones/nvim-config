@@ -4,7 +4,3 @@ tags:
 ---
 
 # {{title}}
-
-
-## Links
-

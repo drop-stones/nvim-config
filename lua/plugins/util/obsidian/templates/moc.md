@@ -4,6 +4,3 @@ tags:
 ---
 
 # {{title}}
-
-## Notes
-

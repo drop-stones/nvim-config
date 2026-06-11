@@ -7,10 +7,3 @@ status: unread
 ---
 
 # {{title}}
-
-## Summary
-
-## Notes
-
-## References
-
