@@ -2,7 +2,7 @@ return {
   -- Auto IM switch
   {
     "drop-stones/im-switch.nvim",
-    event = "VeryLazy",
+    event = { "InsertEnter", "CmdlineEnter" },
     opts = {
       mode = "fixed",
       macos = {
@@ -10,6 +10,10 @@ return {
       },
       linux = {
         default_im = "keyboard-us",
+      },
+      wsl2 = {
+        -- Enable the loopback IPC fast path
+        server = true,
       },
     },
   },
