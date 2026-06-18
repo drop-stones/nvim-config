@@ -103,6 +103,16 @@ return {
     opts = {
       legacy_commands = false,
 
+      -- Markdown rendering (bullets, checkboxes, etc.) is handled by
+      -- render-markdown.nvim; disable obsidian's built-in UI so the two don't
+      -- render over each other. See lua/plugins/lang/markdown.lua.
+      ui = { enable = false },
+
+      -- `:Obsidian toggle_checkbox` cycle: todo -> in progress -> done. Keep this
+      -- in sync with render-markdown's checkbox config (see markdown.lua); `[/]`
+      -- is the de-facto standard "in progress" marker (Obsidian Tasks / themes).
+      checkbox = { order = { " ", "/", "x" } },
+
       -- Default capture/fallback location for newly generated notes.
       notes_subdir = "inbox",
 
